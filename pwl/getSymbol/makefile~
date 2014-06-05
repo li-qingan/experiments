@@ -1,0 +1,8 @@
+LIBS= -ldwarf -lelf
+CFLAGS= -Wall -I/usr/include -I. -O -g
+CC1=g++
+BIN_PATH=../bin
+
+all: getSymbol
+getSymbol: getSymbol.cpp tool.cpp tool.h
+	$(CC1) $(CFLAGS) getSymbol.cpp tool.cpp -o getSymbol  $(LIBS)

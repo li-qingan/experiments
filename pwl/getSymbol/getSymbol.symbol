@@ -1,0 +1,9 @@
+#Demangled name		#Address	#Size
+
+g_outFile		806c520	4
+g_counter		806c51c	4
+g_curFunc		806c518	4
+g_DataMap		806c538	24
+g_nNumOfGlobal		806c534	4
+g_nNumOfLocal		806c530	4
+g_nNumOfFile		806c52c	4
