@@ -1,0 +1,1 @@
+This project provides two memory allocators: a stack allocator and a heap allocator for PCM wear levelling evaluation.
