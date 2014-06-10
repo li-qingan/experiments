@@ -415,9 +415,9 @@ int Error(int res, const char *szInfo, bool bWarn)
 int dump(const char *varName, int addr, bool bGlobal, unsigned int nSize )
 {
 	if( bGlobal )
-		fprintf(g_outFile, "%s\t\t%x\t%u\n", varName, addr, nSize );
+		fprintf(g_outFile, "%s\t\t%x\t%x\n", varName, addr, nSize );
 	else
-		fprintf(g_outFile, "%s::%s\t\t%d\t%u\n", g_curFunc, varName, addr, nSize );
+		fprintf(g_outFile, "%s::%s\t\t%x\t%x\n", g_curFunc, varName, addr, nSize );
 	return 0;
 }
 
