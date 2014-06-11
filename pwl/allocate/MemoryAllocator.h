@@ -3,7 +3,6 @@
 #include <list>
 #include <map>
 #include <fstream>
-#include <sstream>
 #include <vector>
 
 using namespace std;
@@ -99,8 +98,7 @@ protected:
 	virtual void deallocate(TraceE *traceE){};
 
 protected:
-	list<TraceE*> m_Trace;  // temporarily store the function invocation/ret trace	
-	map<UINT32, Object*> m_hId2Object; // temporarily store the object infos	
+	list<TraceE*> m_Trace;  // temporarily store the function invocation/ret trace		
 
 	// for output the stats
 	vector<ADDRINT> m_32Addr2WriteCount;  // write count for each memory line
@@ -151,3 +149,8 @@ private:
 private:
 	MemBlock* m_lastP;        // the lasts
 };
+
+class CHybridAllocator
+{
+	
+}

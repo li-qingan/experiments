@@ -53,6 +53,7 @@ void CAllocator::readTrace()
 	inf.open(m_szTraceFile.c_str());
 	string szLine;
 	
+	std::map<UINT32, Object *> hId2Object;
 	// skip the prolog
 	while(getline(inf, szLine) )
 		if( szLine[0] == '<')
@@ -89,7 +90,7 @@ void CAllocator::readTrace()
 			
 			obj = new Object(nID, nSize, region);  // ??? nSize + 16 for boundary tags?
 			traceE = new TraceE(obj, true);	
-			m_hId2Object[nID] = obj;			
+			hId2Object[nID] = obj;			
 			//cerr << "Entry " << nID << endl;	
 			
 			// read write count
@@ -114,7 +115,7 @@ void CAllocator::readTrace()
 			stringstream ss(szInfo);	
 			ss >>hex>> nID;		
 			
-			Object *obj = m_hId2Object[nID];			
+			Object *obj = hId2Object[nID];			
 			traceE = new TraceE(obj, false);				
 			
 			if( obj == NULL )
