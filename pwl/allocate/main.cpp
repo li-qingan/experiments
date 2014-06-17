@@ -31,16 +31,18 @@ int main(int argc, char *argv[])
 	stringstream ss2(argv[4]);
 	ss2 >> bStackAllocator;	
 
-	
+	//1. read trace
 	ReadTrace(szFile);
 	
-	// initialize allocators
-	CStackAllocator *allocatorS = new CStackAllocator();
+	//2. initialize allocators
+	CStackAllocator *allocatorF = new CStackAllocator();
 	allocatorS.init();
-	CDynamicAllocator *allocatorD = new CDynamicAllocator();
-	allocatorD.init();
+	CDynamicAllocator *allocatorH = new CDynamicAllocator();
+	allocatorH.init();
+	CStackAllocator *allocatorG = new CStackAllocator();
+	allocatorG.init();
 	
-	// start allocating
+	//3. start allocating
 	list<TraceE *>::iterator I = g_Trace.begin(), E = g_Trace.end();
 	for(; I != E; ++ I)
 	{
@@ -48,36 +50,34 @@ int main(int argc, char *argv[])
 		if(traceE->_entry)
 		{
 			Object *obj = traceE->_obj;
-			if( obj->_region == FRAME || allocator)
+			if( obj->_region == FRAME )
 			{
-				allocatorS.allocate(traceE);
+				allocatorF.allocate(traceE);
 			}
 			else if( obj->_region == HEAP )
 			{
-				allocatorD.allocate(traceE);
+				allocatorH.allocate(traceE);
 			}
-			int retv = allocate(traceE);
-			if( retv != 0 )
-			{
-				cerr << "Error: memory overflow!" << endl;
-				return;
-			}
+			else if( obj->_region == GLOBAL )
+				allocatorG.allocate(traceE);	
 		}
 		else
-			deallocate(traceE);
+		{
+			if( obj->_region == FRAME )
+			{
+				allocatorF.deallocate(traceE);
+			}
+			else if( obj->_region == HEAP )
+			{
+				allocatorH.deallocate(traceE);
+			}
+			else if( obj->_region == GLOBAL )
+				allocatorG.deallocate(traceE);
+		}
 	}
-
 	
-
-	CAllocator *allocator;
-
-if(bStackAllocator)
-	allocator = new CStackAllocator(nSizePower, nLineSizeShift, szFile);
-else
-	allocator = new CHeapAllocator(nSizePower, nLineSizeShift, szFile);
-
-
-	allocator->run();
+	//4. print
+	allocatorF.print(
 	return 0;
 }
 

@@ -89,8 +89,8 @@ class CAllocator
 public:
 	CAllocator(ADDRINT nStartAddr, UINT32 nSize, UINT32 nLineSize, string szTraceFile);	
 	void run();
-	void readTrace();	
 	void print(string szFile);
+	virtual viod init(){};
 	virtual void dump(){};
 	
 protected:
@@ -98,37 +98,38 @@ protected:
 	virtual void deallocate(TraceE *traceE){};
 
 protected:
-	list<TraceE*> m_Trace;  // temporarily store the function invocation/ret trace		
-
 	// for output the stats
-	vector<ADDRINT> m_32Addr2WriteCount;  // write count for each memory line
-	vector<ADDRINT> m_32Addr2FrameCount;  // object count for each memory line
+	map<ADDRINT,UINT64> m_32Addr2WriteCount;  // write count for each memory line
+	map<ADDRINT,UINT64> m_32Addr2FrameCount;  // object count for each memory line
 	
 	ADDRINT m_nStartAddr;
 	UINT32 m_nSizePower;
 	UINT32 m_nSize;	// the size of the memory space
-	UINT32 m_nLineSizeShift;	// the size of each memory line which consider the write count as a whole
-	string m_szTraceFile; // the file name of trace	
+	UINT32 m_nLineSizeShift;	// the size of each memory line which consider the write count as a whole	
 };
 
 class CStackAllocator: public CAllocator
 {
 public:
-	CStackAllocator(ADDRINT nStartAddr, ADDRINT nSize, ADDRINT nLineSize, string szTraceFile) : CAllocator(nStartAddr, nSize, nLineSize, szTraceFile) 
+	CStackAllocator(ADDRINT nStartAddr, ADDRINT nSize, ADDRINT nLineSize) : CAllocator(nStartAddr, nSize, nLineSize) {}
+	void init() 
 	{
+		// add an initial free block
+		m_StackTop = new MemBlock(0, m_nSize-1, m_nSize);
 	}
 private:
 	virtual int allocate(TraceE *traceE);
 	virtual void deallocate(TraceE *traceE);	
 	virtual void dump();
 private:
-	list<MemBlock*>  m_Blocks; // the used memory block list
+	MemBlock*  m_StackTop; // the free stack top
 };
 
 class CHeapAllocator: public CAllocator
 {
 public:
-	CHeapAllocator(ADDRINT nStartAddr, ADDRINT nSize, ADDRINT nLineSize, string szTraceFile) : CAllocator(nStartAddr, nSize, nLineSize, szTraceFile)
+	CHeapAllocator(ADDRINT nStartAddr, ADDRINT nSize, ADDRINT nLineSize) : CAllocator(nStartAddr, nSize, nLineSize){}
+	void init()
 	{
 		// add a boundary block for easier insert/delete operation
 		MemBlock *boundary = new MemBlock(0, 0, 0);				
@@ -147,7 +148,7 @@ private:
 	virtual void dump();
 
 private:
-	MemBlock* m_lastP;        // the lasts
+	MemBlock* m_lastP;        // the last position for next-fit
 };
 
 class CHybridAllocator

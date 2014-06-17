@@ -10,148 +10,30 @@
 										cur->setPrev(block);
 								
 
-CAllocator::CAllocator(ADDRINT nStartAddr, ADDRINT nSizePower, ADDRINT nLineSizeShift, string szTraceFile) 
+CAllocator::CAllocator(ADDRINT nStartAddr, ADDRINT nSizePower, ADDRINT nLineSizeShift) 
 {
 	m_nStartAddr = nStartAddr;
 	m_nSize = 1 << nSizePower;  // in power	
 	m_nSizePower = nSizePower;
-	m_nLineSizeShift = nLineSizeShift;
-	m_szTraceFile = szTraceFile;
-}
-
-void CAllocator::run()
-{	
-	m_32Addr2WriteCount.assign(m_nSize >> m_nLineSizeShift,0.0);
-	m_32Addr2FrameCount.assign(m_nSize >> m_nLineSizeShift,0);
-
-
-	readTrace();
-
-	list<TraceE *>::iterator I = m_Trace.begin(), E = m_Trace.end();
-	for(; I != E; ++ I)
-	{
-		TraceE *traceE = *I;
-		if(traceE->_entry)
-		{
-			int retv = allocate(traceE);
-			if( retv != 0 )
-			{
-				cerr << "Error: memory overflow!" << endl;
-				return;
-			}
-		}
-		else
-			deallocate(traceE);
-	}
-
-	dump();
-}
-
-void CAllocator::readTrace()
-{
-	ifstream inf;
-	inf.open(m_szTraceFile.c_str());
-	string szLine;
-	
-	std::map<UINT32, Object *> hId2Object;
-	// skip the prolog
-	while(getline(inf, szLine) )
-		if( szLine[0] == '<')
-			break;
-
-	do
-	{
-		Object *obj = NULL;		
-		TraceE *traceE = NULL;
-		Region region;
-		UINT32 nID;
-		bool bEntry;
-		UINT32 nSize;	
-		UINT32 nCount;	
-
-		if(szLine.size() < 2)
-			continue;				
-		
-		if(szLine[0] == '<' )   // entry
-		{
-			// read basic info
-			if( szLine[1] == 's' )
-				region = FRAME;
-			else if( szLine[1] == 'h' )
-				region = HEAP;
-			else if( szLine[1] == 'g' )
-				region = GLOBAL;
-			else
-				assert(false);
-				
-			string szInfo = szLine.substr(2);
-			stringstream ss(szInfo);	
-			ss >>hex>> nID >> nSize >> nCount;				
-			
-			obj = new Object(nID, nSize, region);  // ??? nSize + 16 for boundary tags?
-			traceE = new TraceE(obj, true);	
-			hId2Object[nID] = obj;			
-			//cerr << "Entry " << nID << endl;	
-			
-			// read write count
-			if( nCount > 0)
-			{
-				getline(inf, szLine);
-				stringstream ss1(szInfo);
-				for(int i =0; i < nCount; ++ i )
-				{
-					UINT32 nOffset;
-					UINT64 nWrite;
-					
-					ss1 >> nOffset >> nWrite;			
-					obj->_hOffset2W[nOffset] = nWrite;		
-				}
-			}
-			
-		}
-		else if(szLine[0] == '>' ) // function exit
-		{
-			string szInfo = szLine.substr(2);
-			stringstream ss(szInfo);	
-			ss >>hex>> nID;		
-			
-			Object *obj = hId2Object[nID];			
-			traceE = new TraceE(obj, false);				
-			
-			if( obj == NULL )
-				cerr << "No entry for " << nID << endl;							
-		}	
-		else
-			assert(false);	
-		
-		m_Trace.push_back(traceE);		
-	}while(getline(inf, szLine));
-	inf.close();
+	m_nLineSizeShift = nLineSizeShift;	
 }
 
 void CAllocator::print(string szOutFile)
 {			
 	
 	ofstream outf;
-	outf.open(szOutFile.c_str());
-
-
-	ADDRINT index = 0;
-	ADDRINT nLines = m_nSize >> m_nLineSizeShift;
-	for(; index < nLines; ++ index )
+	outf.open(szOutFile.c_str(), ios_base::out);
+	std::map<ADDRINT, UINT64>::iterator I_p = m_32Addr2FrameCount.begin(), I_e = m_32Addr2FrameCount.end();
+	for(; I_p != I_e; ++ I_p )	
 	{		
-		outf << hex << (index << m_nLineSizeShift)  << "\t" <<dec << m_32Addr2FrameCount[index] << "\t" <<dec << m_32Addr2WriteCount[index]<< endl;
-
-	}
-	
+		outf << hex << I_p->first  << "\t" << m_32Addr2FrameCount[I_p->second] << "\t" << m_32Addr2WriteCount[I_p->second]<< endl;
+	}	
 
 	outf.close();
 }
 
 void CStackAllocator::dump()
 {
-	if( !m_Blocks.empty() )	
-		cerr << hex << m_Blocks.front()->_obj->_nID << " is not popped!" <<dec << endl;
 	char digits[16];
 	sprintf(digits, "%d", m_nSizePower);
 	string szOutFile = m_szTraceFile + "_" + digits;
@@ -160,38 +42,24 @@ void CStackAllocator::dump()
 	print(szOutFile);
 }
 
-
-
 int CStackAllocator::allocate(TraceE *traceE)
 {
 	Object *obj = traceE->_obj;
 	assert(obj->_nSize != 0 );
-	MemBlock *newBlock = NULL, *lastBlock = NULL;
+	MemBlock *newBlock = NULL;
 	
 	// stack allocation
-	if( m_Blocks.empty() )
+	if(m_StackTop->_nSize < obj->_nSize )
 	{
-		newBlock = new MemBlock(obj, m_nSize-1, obj->_nSize);
-		obj->_block = newBlock;
+		cerr << hex << m_StackTop->_nSize << " cannot afford " << obj->_nSize << " bytes!" << endl;
+		assert(false );
+		return -1;
 	}
-	else
-	{		
-		lastBlock = m_Blocks.front();
-		if(lastBlock->_nStartAddr < obj->_nSize )    // ??? <= or <
-		{
-			cerr << hex << lastBlock->_nStartAddr << " cannot afford " << obj->_nSize << " bytes!" << endl;
-			assert(false );
-		}
-		ADDRINT addr = lastBlock->_nStartAddr-lastBlock->_obj->_nSize;		
-		
-		//cerr << lastBlock->_nStartAddr << "--" << lastBlock->_nSize << endl;
-		//cerr << "==allocate " << traceE->_nID << "-" << traceE->_nFrameSize << endl;
-		
-		newBlock = new MemBlock(obj, addr, obj->_nSize);
-		obj->_block = newBlock;
-	}	
 	
-	m_Blocks.push_front(newBlock);
+	newBlock = new MemBlock(obj, m_StackTop->_nStartAddr-obj->_nSize+1, obj->_nSize);
+	obj->_block = newBlock;
+	
+	m_StackTop->_nStartAddr -= obj->_nSize;
 	
 	// 2. update write count and object count for each address
 	std::map<UINT32, UINT64>::iterator w_p = obj->_hOffset2W.begin(), w_e = obj->_hOffset2W.end();
@@ -206,16 +74,13 @@ int CStackAllocator::allocate(TraceE *traceE)
 void CStackAllocator::deallocate(TraceE *traceE)
 {
 	Object *obj = traceE->_obj;
-	assert(obj->_nSize != 0 );
-	//cerr << "==deallocate " << traceE->_nID << "-" << traceE->_nFrameSize << endl;
-	if( m_Blocks.empty() )
-		cerr << "No entry for traceE->_nID! " << endl;
-	MemBlock *topBlock = m_Blocks.front();
-	if( topBlock->_obj != obj )
-		cerr << topBlock->_obj->_nID << " doesn't match " << obj->_nID << endl;
+	MemBlock *block = obj->_block;
+	assert(block != 0 );	
+	
+	m_Stacktop->_nStartAddr += block->_nSize;
+	m_Stacktop->_nSize += block->_nSize;
 	delete obj;
-	delete topBlock;
-	m_Blocks.pop_front();
+	delete block;
 }
 
 void CHeapAllocator::dump()
