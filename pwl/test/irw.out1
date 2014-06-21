@@ -1,0 +1,9 @@
+PIN:MEMLATENCIES 1.0. 0x0
+#
+# IRW stats
+#
+Total Instruction:	11703
+Total Reads:	3209
+Total Writes:	1889
+Total fast-clock:	20579
+Total footprint in Byte:	3504

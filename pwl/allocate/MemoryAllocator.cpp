@@ -1,5 +1,6 @@
-#include "MemoryAllocator.h"
 #include <assert.h>
+#include "MemoryAllocator.h"
+
 
 #define DELETE_FROM_LIST(block) block->getPrev()->setNext(block->getNext()); \
 								block->getNext()->setPrev(block->getPrev());
@@ -18,34 +19,9 @@ CAllocator::CAllocator(ADDRINT nStartAddr, ADDRINT nSizePower, ADDRINT nLineSize
 	m_nLineSizeShift = nLineSizeShift;	
 }
 
-void CAllocator::print(string szOutFile)
-{			
-	
-	ofstream outf;
-	outf.open(szOutFile.c_str(), ios_base::out);
-	std::map<ADDRINT, UINT64>::iterator I_p = m_32Addr2FrameCount.begin(), I_e = m_32Addr2FrameCount.end();
-	for(; I_p != I_e; ++ I_p )	
-	{		
-		outf << hex << I_p->first  << "\t" << m_32Addr2FrameCount[I_p->second] << "\t" << m_32Addr2WriteCount[I_p->second]<< endl;
-	}	
-
-	outf.close();
-}
-
-void CStackAllocator::dump()
-{
-	char digits[16];
-	sprintf(digits, "%d", m_nSizePower);
-	string szOutFile = m_szTraceFile + "_" + digits;
-	sprintf(digits, "%d", 1);
-	szOutFile = szOutFile + "_" + digits;
-	print(szOutFile);
-}
-
 int CStackAllocator::allocate(TraceE *traceE)
 {
 	Object *obj = traceE->_obj;
-	assert(obj->_nSize != 0 );
 	MemBlock *newBlock = NULL;
 	
 	// stack allocation
@@ -61,13 +37,6 @@ int CStackAllocator::allocate(TraceE *traceE)
 	
 	m_StackTop->_nStartAddr -= obj->_nSize;
 	
-	// 2. update write count and object count for each address
-	std::map<UINT32, UINT64>::iterator w_p = obj->_hOffset2W.begin(), w_e = obj->_hOffset2W.end();
-	for(; w_p != w_e; ++ w_p )
-	{
-		m_32Addr2WriteCount[newBlock->_nStartAddr + w_p->first] += w_p->second;
-		++ m_32Addr2FrameCount[newBlock->_nStartAddr + w_p->first];
-	}	
 	return 0;
 }
 
@@ -77,20 +46,10 @@ void CStackAllocator::deallocate(TraceE *traceE)
 	MemBlock *block = obj->_block;
 	assert(block != 0 );	
 	
-	m_Stacktop->_nStartAddr += block->_nSize;
-	m_Stacktop->_nSize += block->_nSize;
+	m_StackTop->_nStartAddr += block->_nSize;
+	m_StackTop->_nSize += block->_nSize;
 	delete obj;
 	delete block;
-}
-
-void CHeapAllocator::dump()
-{
-	char digits[16];
-	sprintf(digits, "%d", m_nSizePower);
-	string szOutFile = m_szTraceFile + "_" + digits;
-	sprintf(digits, "%d", 0);
-	szOutFile = szOutFile + "_" + digits;
-	print(szOutFile);
 }
 
 int CHeapAllocator::allocate(TraceE *traceE)
@@ -145,16 +104,8 @@ int CHeapAllocator::allocate(TraceE *traceE)
 	{
 		cerr << "While allocating an object of " << hex << obj->_nSize << endl;
 		return retv;
-	}	
-	
+	}		
 
-	// 2. update write count and object count for each address
-	std::map<UINT32, UINT64>::iterator w_p = obj->_hOffset2W.begin(), w_e = obj->_hOffset2W.end();
-	for(; w_p != w_e; ++ w_p )
-	{
-		m_32Addr2WriteCount[newBlock->_nStartAddr + w_p->first] += w_p->second;
-		++ m_32Addr2FrameCount[newBlock->_nStartAddr + w_p->first];
-	}	
 	return 0;
 }
 

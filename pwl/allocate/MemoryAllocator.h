@@ -3,15 +3,16 @@
 #include <list>
 #include <map>
 #include <fstream>
+#include <sstream>
 #include <vector>
+#include <assert.h>
+
 
 using namespace std;
 
 #define UINT32 unsigned int
 #define UINT64 long long 
 #define ADDRINT unsigned int
-
-
 enum Region
 {
 	FRAME = 0,
@@ -87,10 +88,10 @@ public:
 class CAllocator
 {
 public:
-	CAllocator(ADDRINT nStartAddr, UINT32 nSize, UINT32 nLineSize, string szTraceFile);	
+	CAllocator(ADDRINT nStartAddr, UINT32 nSize, UINT32 nLineSize);	
 	void run();
 	void print(string szFile);
-	virtual viod init(){};
+	virtual void init(){};
 	virtual void dump(){};
 	
 protected:
@@ -151,7 +152,3 @@ private:
 	MemBlock* m_lastP;        // the last position for next-fit
 };
 
-class CHybridAllocator
-{
-	
-}
