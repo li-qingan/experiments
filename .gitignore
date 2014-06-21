@@ -1,2 +1,12 @@
+#object and library
+*.[oa]
+
+#dynamic library
+*.so
+*.dll
+*.lib
+*~
+
 #executable
-.so .o .dll .lib
+*.exe
+*.out
