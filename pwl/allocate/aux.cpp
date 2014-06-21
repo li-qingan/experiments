@@ -1,6 +1,5 @@
 #include "aux.h"
 
-
 list<TraceE*> g_Trace;  // temporarily store the function invocation/ret trace	
 map<ADDRINT, UINT64> g_32Addr2WriteCount;
 map<ADDRINT, UINT64> g_32Addr2FrameCount;
