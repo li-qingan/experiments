@@ -8,8 +8,6 @@
 using namespace std;
 
 
-
-
 extern list<TraceE*> g_Trace;  // temporarily store the function invocation/ret trace	
 extern map<ADDRINT, UINT64> g_32Addr2WriteCount;
 extern map<ADDRINT, UINT64> g_32Addr2FrameCount;
