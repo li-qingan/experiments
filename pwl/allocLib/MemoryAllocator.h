@@ -16,6 +16,7 @@ using namespace std;
 #define UINT32 unsigned int
 #define UINT64 long long 
 #define ADDRINT unsigned int
+
 enum Region
 {
 	FRAME = 0,
@@ -146,6 +147,7 @@ public:
 	}
 	MemBlock* allocate(TraceE *traceE);
 	void deallocate(TraceE *traceE);
+	void dumpFreeList();
 
 private:
 	MemBlock* m_lastP;        // the last position for next-fit

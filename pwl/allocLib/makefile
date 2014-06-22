@@ -1,15 +1,20 @@
-LIBS=
-CFLAGS= -Wall -I/usr/include -I. -c -O -g
-CC1=gcc
-LIB_PATH=../bin
 
-install: objects
-	ar crs $(LIB_PATH)/memory.a $(objects)
-objects: MemoryAllocator.o aux.o
+LEVEL=..
+include $(LEVEL)/makefile.config
 
-	
+CXXFLAGS= -c -O2
+
+ifdef DEBUG
+CXXFLAGS=-DDEBUG -c -O0 -g
+endif
+
+objects= MemoryAllocator.o tool.o
+
+all: $(objects)
+	ar crs $(BIN_PATH)/libmemory.a $(objects)	
+		
 MemoryAllocator.o: MemoryAllocator.h MemoryAllocator.cpp 
-	$(CC1) $(CFLAGS) MemoryAllocator.cpp -o MemoryAllocator.o
+	$(CXX) $(CXXFLAGS) $(GCC_MICRO) MemoryAllocator.cpp -o MemoryAllocator.o
 
-aux.o: aux.h aux.cpp
-	$(CC1) $(CFLAGS) aux.cpp -o aux.o
+tool.o: tool.h tool.cpp MemoryAllocator.h
+	$(CXX) $(CXXFLAGS)  $(GCC_MICRO) tool.cpp -o tool.o

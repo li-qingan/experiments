@@ -11,11 +11,10 @@
 										cur->setPrev(block);
 								
 
-CAllocator::CAllocator(ADDRINT nStartAddr, ADDRINT nSizePower, ADDRINT nLineSizeShift=4) 
+CAllocator::CAllocator(ADDRINT nStartAddr, ADDRINT nSize, ADDRINT nLineSizeShift=4) 
 {
 	m_nStartAddr = nStartAddr;
-	m_nSize = 1 << nSizePower;  // in power	
-	m_nSizePower = nSizePower;
+	m_nSize = nSize;  // in power		
 	m_nLineSizeShift = nLineSizeShift;	
 }
 
@@ -57,6 +56,11 @@ MemBlock* CHeapAllocator::allocate(TraceE *traceE)
 	Object *obj = traceE->_obj;
 	assert(obj->_nSize != 0 );
 	
+#ifdef DEBUG
+	cerr << "<try allocating (" << hex << obj->_nID << "," << obj->_nSize << ")" << endl;	
+	dumpFreeList();
+#endif
+	
 	// 1. search the free block to use
 	int retv = 1;
 	MemBlock *newBlock = NULL;
@@ -72,10 +76,13 @@ MemBlock* CHeapAllocator::allocate(TraceE *traceE)
 			block->_nSize -= obj->_nSize;
 			block->_nStartAddr += obj->_nSize;
 			
+			// updating physical position 
 			newBlock->setLeft(block->getLeft());
 			block->getLeft()->setRight(newBlock);
 			newBlock->setRight(block);
 			block->setLeft(newBlock);
+			
+			// no change in free list
 			
 			//cerr << hex << "alloc: " << block->_nStartAddr << "--" << traceE->_nFrameSize << endl;		
 
@@ -91,6 +98,8 @@ MemBlock* CHeapAllocator::allocate(TraceE *traceE)
 			obj->_block = newBlock;
 			newBlock->setUsed(true);
 			
+			// no change in physical position
+			// updating free list			
 			m_lastP = block->getRight();
 			DELETE_FROM_LIST(block);			
 			
@@ -102,72 +111,110 @@ MemBlock* CHeapAllocator::allocate(TraceE *traceE)
 	
 	if( retv != 0 )
 	{
-		cerr << "While allocating an object of " << hex << obj->_nSize << endl;
+		cerr << "@Error: failed " << hex << obj->_nSize << endl;
 		return NULL;
 	}		
-
+#ifdef DEBUG
+	cerr << "@(" <<hex << newBlock->_nStartAddr << "," << newBlock->_nSize << ")" << endl;
+#endif
 	return newBlock;
 }
 
 void CHeapAllocator::deallocate(TraceE *traceE)
 {
 	MemBlock *block = traceE->_obj->_block;
-	assert(block->_nSize != 0 );
+#ifdef DEBUG
+	cerr << ">try deallocating (" <<hex << block->_nStartAddr << "," << block->_nSize << ")" << endl;
+	dumpFreeList();
+#endif
 	
 	//cerr << hex << "dealloc: " << block->_nStartAddr << "--" << traceE->_nFrameSize << endl;		
 	
 	// release and immediate coalescing
 	MemBlock *left = block->getLeft(), *right = block->getRight();
-	if(!left->isUsed() && !right->isUsed())
-	{
-		MemBlock *right2 = right->getRight();
-		
-		// physical relation
-		left->setRight(right2); // for left
+	MemBlock *right2 = right->getRight();
+	if(!left->isUsed() && !right->isUsed())  // the left absorbs both right and current blocks
+	{		
+		// updating physical position		
+		left->setRight(right2); 
+		right2->setLeft(left);
 		left->_nSize += block->_nSize + right->_nSize;		
 		
-		DELETE_FROM_LIST(left);		// keep the latest recently used (LRU) block be used much later
-		if( m_lastP == left || m_lastP == right ) 
-			m_lastP = right2;
+		// updating free list				
+		if( m_lastP == left ) 
+		{
+			m_lastP = left->getNext();
+			if( m_lastP == right )
+				m_lastP == right->getNext(); ////////// to do!!!!
+			DELETE_FROM_LIST(right);
+		}
 		else
+		{			
+			DELETE_FROM_LIST(left);	
 			INSERT_BEFORE_LIST(left, m_lastP);  
-		DELETE_FROM_LIST(block);	// for current
+		}			
 		delete block; 
-		DELETE_FROM_LIST(right);	// for right;
 		delete right;  		
 		
 		
 	}
-	else if( !left->isUsed() )
+	else if( !left->isUsed() ) // absorbed by the left block
 	{
-		left->setRight(right); // for left
+		//updating physical position		
+		left->setRight(right); 
+		right->setLeft(left);
 		left->_nSize += block->_nSize;
 		
-		DELETE_FROM_LIST(left);		// keep the latest recently used (LRU) block be used much later
+		// updating free list			
 		if( m_lastP == left )
-			m_lastP = right;
+		{
+			m_lastP = right;						
+		}
 		else
+		{
+			DELETE_FROM_LIST(left);	
 			INSERT_BEFORE_LIST(left, m_lastP); 
-		
-		DELETE_FROM_LIST(block);	// for current	
+		}		
 		delete block; 	
 	}
-	else if( !right->isUsed() )
+	else if( !right->isUsed() )  // absorbed by the right block
 	{		
-		MemBlock *right2 = right->getRight();
-		block->setRight(right2); // for current
-		block->_nSize += right->_nSize;
-		block->setUsed(false);
+		// updating physical position		
+		right->setLeft(left);
+		left->setRight(right);
+		right->_nSize += block->_nSize;	
+		right->_nStartAddr -= block->_nSize;	
 		
-		DELETE_FROM_LIST(block);		// keep the latest recently used (LRU) block be used much later
+		// updating free list
 		if( m_lastP == right )
-			m_lastP = right2;
+		{			
+			m_lastP = right2;			
+		}
 		else
-			INSERT_BEFORE_LIST(block, m_lastP); 
-		
-		DELETE_FROM_LIST(right);	// for right
-		delete right; 
+		{
+			DELETE_FROM_LIST(right);
+			INSERT_BEFORE_LIST(right, m_lastP); // keep the latest recently used (LRU) block used much later
+		}			
+		delete block; 
 	}	
+	else
+	{
+		// no change in physical position
+		block->setUsed(false);		
+		// updating free list
+		INSERT_BEFORE_LIST(block, m_lastP);
+	}
+}
+
+void CHeapAllocator::dumpFreeList()
+{
+	MemBlock *block = m_lastP;
+	do
+	{
+		cerr << "(" << block->_nStartAddr << "," << block->_nSize << ")\t->\t" ;
+		block = block->getNext();
+	}while (block != m_lastP);
+	cerr << endl;
 }
 
 
