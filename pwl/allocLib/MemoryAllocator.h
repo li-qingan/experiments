@@ -61,8 +61,8 @@ struct MemBlock
 	// specific for dynamic allocator
 private:
 	bool _bUsed;                     	
-	MemBlock *_prevBlock;   // for list
-	MemBlock *_nextBlock; 	
+	//MemBlock *_prevBlock;   // for list
+	//MemBlock *_nextBlock; 	
 	
 	MemBlock *_leftBlock;   // for constant coalescing. Physical adjacent blocks
 	MemBlock *_rightBlock;  
@@ -78,10 +78,10 @@ public:
 	bool isUsed() { return _bUsed; }
 	void setUsed(bool bUsed){ _bUsed = bUsed; }
 	
-	void setPrev(MemBlock *prev) {_prevBlock = prev;}
-	void setNext(MemBlock *next) {_nextBlock = next;}
-	MemBlock* getPrev() { return _prevBlock; }
-	MemBlock* getNext() { return _nextBlock; }
+	//void setPrev(MemBlock *prev) {_prevBlock = prev;}
+	//void setNext(MemBlock *next) {_nextBlock = next;}
+	//MemBlock* getPrev() { return _prevBlock; }
+	//MemBlock* getNext() { return _nextBlock; }
 	
 	void setLeft(MemBlock *left) {_leftBlock = left;}
 	void setRight(MemBlock *right) {_rightBlock = right;}
@@ -138,8 +138,8 @@ public:
 		MemBlock *boundary = new MemBlock(0, 0, 0);				
 		MemBlock *block = new MemBlock(0, m_nStartAddr, m_nSize);
 		block->setUsed(false);
-		boundary->setPrev(block); boundary->setNext(block);
-		block->setPrev(boundary); block->setNext(boundary);
+		//boundary->setPrev(block); boundary->setNext(block);
+		//block->setPrev(boundary); block->setNext(boundary);
 		boundary->setLeft(block); boundary->setRight(block);
 		block->setLeft(boundary); block->setRight(boundary);
 				

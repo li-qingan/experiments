@@ -1,8 +1,12 @@
-LIBS= -ldwarf -lelf
-CFLAGS= -Wall -I/usr/include -I. -O -g
-CC1=g++
-BIN_PATH=../bin
+
+LEVEL=..
+include $(LEVEL)/makefile.config
+
+LDFLAGS= -ldwarf -lelf
+CFLAGS= -O2 -g
 
 all: getSymbol
+.PHONY: all
+
 getSymbol: getSymbol.cpp tool.cpp tool.h
-	$(CC1) $(CFLAGS) getSymbol.cpp tool.cpp -o $(BIN_PATH)/getSymbol  $(LIBS)
+	$(CXX) $(CFLAGS) getSymbol.cpp tool.cpp -o $(BIN_PATH)/getSymbol  $(LDFLAGS)

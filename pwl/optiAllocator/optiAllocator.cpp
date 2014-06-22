@@ -2,17 +2,14 @@
 #include "../allocLib/tool.h"
 #include <sstream>
 
-list<TraceE*> g_Trace;  // temporarily store the function invocation/ret trace	
-map<ADDRINT, UINT64> g_32Addr2WriteCount;
-map<ADDRINT, UINT64> g_32Addr2FrameCount;
-
-void ReadTrace(string szFile);
-
 int main(int argc, char *argv[])
 {
 	if( argc < 4 )
 	{
 		cerr << "Lack of args: need four args!" << endl;
+		cerr << "arg1: input file" << endl;
+		cerr << "arg2: power vaule of space size" << endl;
+		cerr << "arg3: memory line width in bytes, 4 bytes by default" << endl;
 		return -1;
 	}
 
@@ -22,7 +19,7 @@ int main(int argc, char *argv[])
 	stringstream ss(argv[2]);
 	ss >> nSizePower;	
 	nSize = 1<< nSizePower;
-	cerr << "Memory Size (in bytes):\t" << hex << nSizePower << dec << endl;	
+	cerr << "Memory Size (in bytes):\t" << hex << nSize << dec << endl;	
 
 	ADDRINT nLineSize;
 	stringstream ss1(argv[3]);
@@ -31,10 +28,10 @@ int main(int argc, char *argv[])
 	string szOutFile = string(argv[1]) + "_" + argv[2] + "_" + argv[3];
 	
 	//1. read trace
-	ReadTrace(szFile);
+	readTrace(szFile);
 	
 	//2. initialize allocators
-	CHeapAllocator *allocator = new CHeapAllocator(0,1<<nSizePower, nLineSize);
+	CHeapAllocator *allocator = new CHeapAllocator(0, nSize, nLineSize);
 	allocator->init();
 	
 	//3. start allocating
@@ -42,9 +39,11 @@ int main(int argc, char *argv[])
 	for(; I != E; ++ I)
 	{
 		TraceE *traceE = *I;
+		Object *obj = traceE->_obj;
 		if(traceE->_entry)
 		{
-			allocator->allocate(traceE);	
+			MemBlock *block = allocator->allocate(traceE);	
+			updateStats(obj, block);
 		}
 		else
 		{

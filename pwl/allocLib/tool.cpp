@@ -31,14 +31,17 @@ void readTrace(string szTraceFile)
 		if(szLine[0] == '<' )   // entry
 		{
 			// read basic info
-			if( szLine[1] == 's' )
+			if( szLine[1] == 'f' )
 				region = FRAME;
 			else if( szLine[1] == 'h' )
 				region = HEAP;
 			else if( szLine[1] == 'g' )
 				region = GLOBAL;
 			else
+			{
+				cerr << szLine << endl;
 				assert(false);
+			}
 				
 			string szInfo = szLine.substr(2);
 			stringstream ss(szInfo);	

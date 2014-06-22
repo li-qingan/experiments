@@ -1,5 +1,5 @@
-#include "../allocate/MemoryAllocator.h"
-#include "../allocate/tool.h"
+#include "../allocLib/MemoryAllocator.h"
+#include "../allocLib/tool.h"
 #include <sstream>
 
 
@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 	stringstream ss(argv[2]);
 	ss >> nSizePower;	
 	UINT64 nSize = 1<<nSizePower;
-	cerr << "Memory Size (in bytes):\t" << hex << (1<<nSizePower) << dec << endl;	
+	cerr << "Memory Size (in bytes):\t" << hex << nSize << dec << endl;	
 
 	ADDRINT nLineSize;
 	stringstream ss1(argv[3]);
