@@ -1,4 +1,5 @@
-#include "../allocate/MemoryAllocator.h"
+#include "../allocLib/MemoryAllocator.h"
+#include "../allocLib/tool.h"
 #include <sstream>
 
 list<TraceE*> g_Trace;  // temporarily store the function invocation/ret trace	
@@ -17,14 +18,15 @@ int main(int argc, char *argv[])
 
 	string szFile = argv[1];
 	
-	ADDRINT nSizePower;
+	UINT64 nSizePower, nSize;
 	stringstream ss(argv[2]);
 	ss >> nSizePower;	
-	cerr << "Memory Size (in bytes):\t" << hex << (1<<nSizePower) << dec << endl;	
+	nSize = 1<< nSizePower;
+	cerr << "Memory Size (in bytes):\t" << hex << nSizePower << dec << endl;	
 
-	ADDRINT nLineSizeShift;
+	ADDRINT nLineSize;
 	stringstream ss1(argv[3]);
-	ss1 >> nLineSizeShift;
+	ss1 >> nLineSize;
 	
 	string szOutFile = string(argv[1]) + "_" + argv[2] + "_" + argv[3];
 	
@@ -32,7 +34,7 @@ int main(int argc, char *argv[])
 	ReadTrace(szFile);
 	
 	//2. initialize allocators
-	CHeapAllocator *allocator = new CHeapAllocator(0,1<<nSizePower, nLineSizeShift);
+	CHeapAllocator *allocator = new CHeapAllocator(0,1<<nSizePower, nLineSize);
 	allocator->init();
 	
 	//3. start allocating
@@ -51,7 +53,7 @@ int main(int argc, char *argv[])
 	}
 	
 	//4. print
-	print(szOutFile);
+	print(szOutFile, nSize);
 	return 0;
 }
 
