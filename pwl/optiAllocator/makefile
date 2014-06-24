@@ -9,6 +9,7 @@ endif
 
 LDFLAGS=-L$(BIN_PATH) -lmemory
 
-optiAllocator: optiAllocator.cpp
-	$(CXX) $(CXXFLAGS) optiAllocator.cpp -o $(BIN_PATH)/optiAllocator $(LDFLAGS)
+optiAllocator: optiAllocator.cpp $(BIN_PATH)/libmemory.a
+	$(CXX) $(CXXFLAGS) optiAllocator.cpp -o optiAllocator $(LDFLAGS)
+	cp optiAllocator $(BIN_PATH)
 	 

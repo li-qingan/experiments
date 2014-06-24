@@ -9,7 +9,7 @@ endif
 
 LDFLAGS=-L$(BIN_PATH) -lmemory
 
-all: defaultAllocator
 
-defaultAllocator: defaultAllocator.cpp
-	$(CXX) $(CXXFLAGS) defaultAllocator.cpp -o $(BIN_PATH)/defaultAllocator $(LDFLAGS)
+defaultAllocator: defaultAllocator.cpp $(BIN_PATH)/libmemory.a
+	$(CXX) $(CXXFLAGS) defaultAllocator.cpp -o defaultAllocator $(LDFLAGS)
+	cp defaultAllocator $(BIN_PATH)

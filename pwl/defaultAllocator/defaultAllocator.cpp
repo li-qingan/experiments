@@ -6,43 +6,55 @@
 
 int main(int argc, char *argv[])
 {
-	if( argc < 7 )
+	if( argc < 6 )
 	{
 		cerr << "Lack of args: need seven args!" << endl;
+		cerr << "arg1: input file" << endl;
+		cerr << "arg2: space size (10 means 1k)" << endl;
+		cerr << "arg3: memory line width in bytes, 4 bytes by default" << endl;
+		cerr << "arg4: start address of heap data (10 means 1k)" << endl;
+		cerr << "arg5: space size reserved for heap data (10 means 1k)" << endl;
 		return -1;
 	}
-
+	ofstream os;
+	os.open("default.out", ios_base::out);
 	string szFile = argv[1];
 	
-	ADDRINT nSizePower;
+	ADDRINT nSize;
 	stringstream ss(argv[2]);
-	ss >> nSizePower;	
-	UINT64 nSize = 1<<nSizePower;
-	cerr << "Memory Size (in bytes):\t" << hex << nSize << dec << endl;	
-
+	ss >> nSize;	
+	nSize = 1<<nSize;	
+	
 	ADDRINT nLineSize;
 	stringstream ss1(argv[3]);
-	ss1 >> nLineSize;
-	
-	ADDRINT nStartG;
-	stringstream ss2(argv[4]);
-	ss2 >> nStartG;
-	
+	ss1 >> nLineSize;	
+		
 	ADDRINT nStartH;
+	stringstream ss2(argv[4]);
+	ss2 >> nStartH;	
+	nStartH = 1<<nStartH;
+	
+	ADDRINT nHeapSize;
 	stringstream ss3(argv[5]);
-	ss3 >> nStartH;	
+	ss3 >> nHeapSize;
+	nHeapSize = 1<<nHeapSize;
 
-	string szOutFile = string( argv[1] ) + "_" + argv[2] + "_" + argv[3];
+	string szOutFile = string( argv[1] ) + "." + argv[2] + "." + argv[3] + ".default";
+	
+	cerr << hex << "Memory size (global, heap, stack)"<<  endl;	
+	cerr << hex << nSize << "\t(0\t" << nStartH << "\t" << nStartH + nHeapSize << ")" << endl;
+	os << hex << "Memory size (global, heap, stack)"<<  endl;	
+	os << hex << nSize << "\t(0\t" << nStartH << "\t" << nStartH + nHeapSize << ")" << endl;	
 
 	//1. read trace
 	readTrace(szFile);
 	
 	//2. initialize allocators
-	CStackAllocator *allocatorF = new CStackAllocator( 1<<nSizePower, (nSize-nStartH)/2, nLineSize );
+	CStackAllocator *allocatorF = new CStackAllocator( nStartH+nHeapSize, nSize-nStartH-nHeapSize, nLineSize );
 	allocatorF->init();
-	CHeapAllocator *allocatorH = new CHeapAllocator( nStartH, (nSize-nStartH)/2, nLineSize );
+	CHeapAllocator *allocatorH = new CHeapAllocator( nStartH, nHeapSize, nLineSize );
 	allocatorH->init();
-	CStackAllocator *allocatorG = new CStackAllocator( nStartG, nStartH - nStartG, nLineSize );
+	CStaticAllocator *allocatorG = new CStaticAllocator( 0, nStartH, nLineSize );
 	allocatorG->init();
 	
 	//3. start allocating
@@ -88,8 +100,8 @@ int main(int argc, char *argv[])
 	print(szOutFile, nSize);
 	
 	//5. wear leveling compute
-	wearCompute(1<<nSizePower);
-	
+	wearCompute(nSize, os);
+	os.close();
 	return 0;
 }
 

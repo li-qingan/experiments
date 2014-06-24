@@ -121,7 +121,7 @@ void print(string szOutFile, UINT64 nSize)
 	outf.close();
 }
 
-double wearCompute(UINT64 nSize)
+double wearCompute(UINT64 nSize, ofstream &outf)
 {
 	vector<UINT64> writes(nSize,0);
 	UINT64 worst = 0;
@@ -142,6 +142,7 @@ double wearCompute(UINT64 nSize)
 
 	double exp = sum/writes.size();
 	cerr << "sum/exp:\t" << sum << "/" << exp << endl;
+	outf << "sum/exp:\t" << sum << "/" << exp << endl;
 
 	// 2. compute sum of variance
 	double sumVariance = 0.0;
@@ -162,6 +163,8 @@ double wearCompute(UINT64 nSize)
 	double wear = sqrt(stdDev)/exp;
 	cerr << "worst:\t" << worst << endl;
 	cerr << "wear:\t" << wear << endl;
+	outf << "worst:\t" << worst << endl;
+	outf << "wear:\t" << wear << endl;
 	
 	return wear;
 }

@@ -12,6 +12,8 @@ int main(int argc, char *argv[])
 		cerr << "arg3: memory line width in bytes, 4 bytes by default" << endl;
 		return -1;
 	}
+	ofstream os;
+	os.open("opti.out", ios_base::out);
 
 	string szFile = argv[1];
 	
@@ -19,13 +21,13 @@ int main(int argc, char *argv[])
 	stringstream ss(argv[2]);
 	ss >> nSizePower;	
 	nSize = 1<< nSizePower;
-	cerr << "Memory Size (in bytes):\t" << hex << nSize << dec << endl;	
+	cerr << "Memory Size (in bytes):\t" << hex << nSize << endl;	
 
 	ADDRINT nLineSize;
 	stringstream ss1(argv[3]);
 	ss1 >> nLineSize;
 	
-	string szOutFile = string(argv[1]) + "_" + argv[2] + "_" + argv[3];
+	string szOutFile = string(argv[1]) + "." + argv[2] + "." + argv[3] + ".opt";
 	
 	//1. read trace
 	readTrace(szFile);
@@ -53,6 +55,10 @@ int main(int argc, char *argv[])
 	
 	//4. print
 	print(szOutFile, nSize);
+	
+	//5. wear leveling compute
+	wearCompute(nSize, os);
+	os.close();
 	return 0;
 }
 

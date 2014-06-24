@@ -1,2 +1,0 @@
-Heap alloc size:	3216901900
-../shell/simulate.sh: line 19: 13718 Segmentation fault      (core dumped) $PIN -t $PIN_TOOL -- ./$APPLICATION

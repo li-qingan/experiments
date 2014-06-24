@@ -10,3 +10,7 @@
 #executable
 *.exe
 *.out
+
+#auxiliary files
+*.log
+*.out.*

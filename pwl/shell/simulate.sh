@@ -8,13 +8,14 @@ PIN_TOOL=$PIN_TOOL_PATH/obj-ia32/$1.so
 
 APPLICATION=$2
 
-#1. obtain global address
+#1. obtain global address by reading dwarf debug info
 echo $SYMBOL $APPLICATION
 $SYMBOL $APPLICATION
 echo cp $APPLICATION.symbol symbol.txt
 cp $APPLICATION.symbol symbol.txt
 
-#2. start simulating
+#2. Generate trace by simulating
 echo $PIN -t $PIN_TOOL -- ./$APPLICATION
 $PIN -t $PIN_TOOL -- ./$APPLICATION
+
 

@@ -8,24 +8,73 @@ CAllocator::CAllocator(ADDRINT nStartAddr, ADDRINT nSize, ADDRINT nLineSizeShift
 	m_nLineSizeShift = nLineSizeShift;	
 }
 
+MemBlock *CStaticAllocator::allocate(TraceE *traceE)
+{
+	Object *obj = traceE->_obj;
+	MemBlock *newBlock = NULL;
+	
+#ifdef DEBUG
+	cerr << "<try allocating (" << hex << obj->_nID << "," << obj->_nSize << ") from static" << endl;		
+#endif
+
+	ADDRINT nRemain = m_nSize - m_nCurrent;
+	if( obj->_nSize > nRemain )
+	{
+		cerr << "@Error: failed to allocate " << hex << obj->_nSize << " with only " << nRemain << "bytes remaining" << endl;
+		assert(false);
+		return NULL;
+	}
+
+#ifdef DEBUG
+	cerr << "@(" <<hex << m_nCurrent << "," << obj->_nSize << ")" << endl;
+#endif	
+	newBlock = new MemBlock(obj, m_nCurrent, obj->_nSize);
+	obj->_block = newBlock;
+	m_nCurrent += obj->_nSize;
+	
+	return newBlock;	
+}
+
+void CStaticAllocator::deallocate(TraceE *traceE)
+{
+	Object *obj = traceE->_obj;
+	MemBlock *block = obj->_block;
+	assert(block != 0 );	
+	
+#ifdef DEBUG
+	cerr << ">try deallocating (" <<hex << block->_nStartAddr << "," << block->_nSize << ") back to static area" << endl;
+#endif	
+	
+	m_nCurrent -= obj->_nSize;
+	delete obj;
+	delete block;
+}
+
 MemBlock *CStackAllocator::allocate(TraceE *traceE)
 {
 	Object *obj = traceE->_obj;
 	MemBlock *newBlock = NULL;
 	
-	// stack allocation
-	if(m_StackTop->_nSize < obj->_nSize )
+#ifdef DEBUG
+	cerr << "<try allocating (" << hex << obj->_nID << "," << obj->_nSize << ") from stack" << endl;	
+#endif
+
+	ADDRINT nRemain = m_StackTop - m_nStartAddr;
+	if( nRemain < obj->_nSize )
 	{
-		cerr << hex << m_StackTop->_nSize << " cannot afford " << obj->_nSize << " bytes!" << endl;
+		cerr << hex << nRemain << " cannot afford " << obj->_nSize << " bytes!" << endl;
 		assert(false );
 		return NULL;
 	}
-	
-	newBlock = new MemBlock(obj, m_StackTop->_nStartAddr-obj->_nSize+1, obj->_nSize);
+
+	newBlock = new MemBlock(obj, m_StackTop-obj->_nSize, obj->_nSize);
 	obj->_block = newBlock;
 	
-	m_StackTop->_nStartAddr -= obj->_nSize;
-	
+	m_StackTop -= obj->_nSize;
+
+#ifdef DEBUG
+	cerr << "@(" <<hex << newBlock->_nStartAddr << "," << newBlock->_nSize << ")" << endl;
+#endif
 	return newBlock;
 }
 
@@ -35,8 +84,11 @@ void CStackAllocator::deallocate(TraceE *traceE)
 	MemBlock *block = obj->_block;
 	assert(block != 0 );	
 	
-	m_StackTop->_nStartAddr += block->_nSize;
-	m_StackTop->_nSize += block->_nSize;
+#ifdef DEBUG
+	cerr << ">try deallocating (" <<hex << block->_nStartAddr << "," << block->_nSize << ") back to stack" << endl;
+#endif	
+	
+	m_StackTop += block->_nSize;
 	delete obj;
 	delete block;
 }
@@ -44,11 +96,10 @@ void CStackAllocator::deallocate(TraceE *traceE)
 MemBlock* CHeapAllocator::allocate(TraceE *traceE)
 {
 	Object *obj = traceE->_obj;
-	assert(obj->_nSize != 0 );
-	
+	assert(obj->_nSize != 0 );	
+
 #ifdef DEBUG
-	cerr << "<try allocating (" << hex << obj->_nID << "," << obj->_nSize << ")" << endl;	
-	dumpFreeList();
+	cerr << "<try allocating (" << hex << obj->_nID << "," << obj->_nSize << ") from heap" << endl;	
 #endif
 	
 	// 1. search the free block to use

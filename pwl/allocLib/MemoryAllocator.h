@@ -96,7 +96,6 @@ public:
 	void run();
 	void print(string szFile);
 	virtual void init(){};
-	virtual void dump(){};
 	
 protected:
 	virtual MemBlock* allocate(TraceE *traceE){ return 0;};
@@ -111,6 +110,22 @@ protected:
 	UINT32 m_nSizePower;
 	UINT32 m_nSize;	// the size of the memory space
 	UINT32 m_nLineSizeShift;	// the size of each memory line which consider the write count as a whole	
+	
+};
+
+class CStaticAllocator: public CAllocator
+{
+public: 
+	CStaticAllocator(ADDRINT nStartAddr, ADDRINT nSize, ADDRINT nLineSize) : CAllocator(nStartAddr, nSize, nLineSize) {}
+	void init()
+	{
+		m_nCurrent = m_nStartAddr;
+	}
+	MemBlock *allocate(TraceE *traceE);
+	void deallocate(TraceE *traceE);
+	
+private:
+	ADDRINT m_nCurrent; // to track the available space
 };
 
 class CStackAllocator: public CAllocator
@@ -120,12 +135,12 @@ public:
 	void init() 
 	{
 		// add an initial free block
-		m_StackTop = new MemBlock(0, m_nSize-1, m_nSize);
+		m_StackTop = m_nStartAddr + m_nSize;
 	}
 	MemBlock* allocate(TraceE *traceE);
 	void deallocate(TraceE *traceE);
 private:
-	MemBlock*  m_StackTop; // the free stack top
+	ADDRINT  m_StackTop; // to track the available space
 };
 
 class CHeapAllocator: public CAllocator
