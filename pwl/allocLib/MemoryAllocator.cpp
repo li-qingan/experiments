@@ -99,7 +99,8 @@ MemBlock* CHeapAllocator::allocate(TraceE *traceE)
 	assert(obj->_nSize != 0 );	
 
 #ifdef DEBUG
-	cerr << "<try allocating (" << hex << obj->_nID << "," << obj->_nSize << ") from heap" << endl;	
+	//cerr << "<try allocating (" << hex << obj->_nID << "," << obj->_nSize << ") from heap" << endl;	
+	//dumpFreeList();
 #endif
 	
 	// 1. search the free block to use
@@ -149,7 +150,7 @@ MemBlock* CHeapAllocator::allocate(TraceE *traceE)
 	
 	if( retv != 0 )
 	{
-		cerr << "@Error: failed " << hex << obj->_nSize << endl;
+		cerr << "@Error: failed for (" << hex << obj->_nID << "," << obj->_nSize << ")" << endl;
 		return NULL;
 	}		
 #ifdef DEBUG
@@ -163,7 +164,7 @@ void CHeapAllocator::deallocate(TraceE *traceE)
 	MemBlock *block = traceE->_obj->_block;
 #ifdef DEBUG
 	cerr << ">try deallocating (" <<hex << block->_nStartAddr << "," << block->_nSize << ")" << endl;
-	dumpFreeList();
+	//dumpFreeList();
 #endif
 	
 	//cerr << hex << "dealloc: " << block->_nStartAddr << "--" << traceE->_nFrameSize << endl;		
@@ -179,14 +180,10 @@ void CHeapAllocator::deallocate(TraceE *traceE)
 		left->_nSize += block->_nSize + right->_nSize;		
 		
 		// updating free list				
-		if( m_lastP == block ) 
-		{
-			cerr << "Strange situation!" << endl;
-			assert(false);
+		if( m_lastP == block || m_lastP == right) // ???may not achieve a good even usage, since a huge right block may be skipped
+		{			
 			m_lastP = right2;
-		}
-		else if( m_lastP == right )              // ???may not achieve a good even usage, since a huge right block may be skipped
-			m_lastP == right2;  			
+		}		
 		delete block; 
 		delete right;  		
 		
