@@ -3,7 +3,12 @@ LEVEL=..
 include $(LEVEL)/makefile.config
 
 LDFLAGS= -ldwarf -lelf
-CFLAGS= -O2 -g
+
+CFLAGS= -g -O2
+
+ifdef DEBUG
+CFLAGS=-DDEBUG -g -O0 
+endif
 
 getSymbol: getSymbol.cpp tool.cpp tool.h
 	$(CXX) $(CFLAGS) getSymbol.cpp tool.cpp -o getSymbol  $(LDFLAGS)

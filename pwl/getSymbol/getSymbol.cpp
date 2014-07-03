@@ -387,7 +387,7 @@ print_die_data(Dwarf_Debug dbg, Dwarf_Die print_me,int level,
 			
 		}
 		else 
-			printf("");
+			printf(" ");
 	}
 
     if(!localname) {
