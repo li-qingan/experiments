@@ -83,7 +83,7 @@ class CTool
 	static uint GetTypeSize(Dwarf_Debug dbg, Dwarf_Die die, std::string szInfo);
 	static uint GetArrayLength(Dwarf_Debug, Dwarf_Die die, uint extLen);
 	
-	static Dwarf_Die GetAttrDie(Dwarf_Debug dbg, Dwarf_Die die, std::string szInfo);
+	static Dwarf_Die GetAttrAsDie(Dwarf_Debug dbg, Dwarf_Die die, int nAttr, std::string szInfo);
 	
 	// Query function: from address to symbol
 	static std::string QueryAddress(uint nAddr);

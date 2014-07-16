@@ -98,118 +98,140 @@ string NameMangle::GetDieName(Dwarf_Die die)
 
 Dwarf_Attribute CTool::GetAttribute(Dwarf_Die die, int nAttri, string szInfo, bool bNeedAttri=false)
 {
-  Dwarf_Error error = 0;
-  int res;
-  Dwarf_Bool bRet;
-  res = dwarf_hasattr(die,nAttri, &bRet, &error);  // no attribute
-  if( res != DW_DLV_OK || !bRet) 
-  {
-  if(bNeedAttri)
-  {
-    printf("Error in no %s attribute \n", szInfo.c_str()); 
-    exit(1);
-  }
-  return NULL;
-  }  
+  	Dwarf_Error error = 0;
+  	int res;
+  	Dwarf_Bool bRet;
+  	res = dwarf_hasattr(die,nAttri, &bRet, &error);  // no attribute
+  	if( res != DW_DLV_OK || !bRet) 
+  	{
+  		if(bNeedAttri)
+  		{
+    		printf("Error in no %s attribute \n", szInfo.c_str()); 
+    		exit(1);
+  		}
+  		return NULL;
+  	}  
   
-  Dwarf_Attribute attr;
-  res = dwarf_attr(die, nAttri, &attr, &error );  // error for getting location
-  if(res != DW_DLV_OK ) {
-    printf("Error in getting %s attribute\n", szInfo.c_str());
-  exit(1);
-  }
-  return attr;
+  	Dwarf_Attribute attr;
+  	res = dwarf_attr(die, nAttri, &attr, &error );  // error for getting location
+  	if(res != DW_DLV_OK ) {
+    	printf("Error in getting %s attribute\n", szInfo.c_str());
+  		exit(1);
+  	}
+  	return attr;
 }
 
 
 uint CTool::GetTypeSize(Dwarf_Debug dbg, Dwarf_Die die, string szInfo)
 {
-  Dwarf_Error error = 0;
-  Dwarf_Half tag = 0;
-  uint size = 1;
+  	Dwarf_Error error = 0;
+  	Dwarf_Half tag = 0;
+ 	 uint size = 1;
   
-  int res = dwarf_tag(die, &tag, &error);
-  if( res != DW_DLV_OK )
-  {
-  printf("Error in tag\n");
-  exit(1);
-  }  
+ 	int res = dwarf_tag(die, &tag, &error);
+ 	if( res != DW_DLV_OK )
+ 	{
+  		printf("Error in tag\n");
+  		exit(1);
+  	}  
   
-  Dwarf_Attribute attr;
-  if( tag == DW_TAG_array_type )
-  {
-  // get original type of array-type
-  Dwarf_Die typeDie = CTool::GetAttrDie(dbg, die, string("type of array-type for ")+szInfo);  
-  uint oriSize = GetTypeSize(dbg, typeDie, string("size of type of array type for ") + szInfo );
+  	Dwarf_Attribute attr;
+  	if( tag == DW_TAG_array_type )
+  	{
+  		// get original type of array-element
+  		Dwarf_Die typeDie = CTool::GetAttrAsDie(dbg, die, DW_AT_type, string("type of array-type for ")+szInfo);  		
+  		uint oriSize = GetTypeSize(dbg, typeDie, string("size of type of array type for ") + szInfo );
   
-  // the child(ren) of an array-type is a subrange-type
-  Dwarf_Die child;
-  res = dwarf_child(die,&child,&error);  
-  if(res != DW_DLV_OK) 
-  {
-    printf("Error in getting a child die of array-type\n");
-    exit(1);
-  }
-  res = dwarf_tag(child, &tag, &error);
-  if( res != DW_DLV_OK || tag != DW_TAG_subrange_type )
-  {
-    printf("Error a non-subgrange child of a subrange_type\n");
-    exit(1);
-  }  
-  return oriSize * CTool::GetArrayLength(dbg, child, 1);
-  }
-  else if( tag == DW_TAG_typedef)
-  {
-  Dwarf_Die typeDie = CTool::GetAttrDie(dbg, die, string("type of typedef")+szInfo);
+  		// the child(ren) of an array-type is a subrange-type
+  		Dwarf_Die child;
+  		res = dwarf_child(die,&child,&error);  
+  		if(res != DW_DLV_OK) 
+  		{
+    		printf("Error in getting a child die of array-type\n");
+    		exit(1);
+  		}
+  		res = dwarf_tag(child, &tag, &error);
+  		if( res != DW_DLV_OK || tag != DW_TAG_subrange_type )
+  		{
+   			printf("Error a non-subgrange child of a subrange_type\n");
+    		exit(1);
+  		}  
+  		return oriSize * CTool::GetArrayLength(dbg, child, 1);
+  	}
+  	else if( tag == DW_TAG_typedef)
+  	{
+  		Dwarf_Die typeDie = CTool::GetAttrAsDie(dbg, die, DW_AT_type, string("type of typedef ")+szInfo);
   
-  return GetTypeSize(dbg, typeDie, string("size of type of typedef") + szInfo);
-  }
-  else if ( tag == DW_TAG_const_type )
-  {
-  Dwarf_Die typeDie = CTool::GetAttrDie(dbg, die, string("type of const")+szInfo);
+  		return GetTypeSize(dbg, typeDie, string("size of type of typedef ") + szInfo);
+  	}
+  	else if ( tag == DW_TAG_const_type )
+  	{
+  		Dwarf_Die typeDie = CTool::GetAttrAsDie(dbg, die, DW_AT_type, string("type of const ")+szInfo);
   
-  return GetTypeSize(dbg, typeDie, string("size of type of const") + szInfo);
-  }
-  else
-  {
-  //assert(tag == DW_TAG_base_type || tag == DW_TAG_structure_type);
-  attr = GetAttribute(die, DW_AT_byte_size, string("byte_size for ") + szInfo, true );
-  Dwarf_Unsigned size = 0;
-  res = dwarf_formudata(attr, &size, &error);
-  if( res != DW_DLV_OK) 
-  {
-    printf("Error in getting size of %s \n", szInfo.c_str());  
-    exit(0);
-  }
-  return size;
-  }
+  		return GetTypeSize(dbg, typeDie, string("size of type of const ") + szInfo);
+  	}
+  	else if (tag == DW_TAG_pointer_type )
+	{
+		attr = GetAttribute(die, DW_AT_byte_size, string("byte_size for pointer ") + szInfo, false );
+		if( attr == NULL )
+		{
+			printf("\nWarning: no byte_size attribute for pointer-type, using 8-byte by default!\n");
+			return 8;
+		}
+  		Dwarf_Unsigned size = 0;
+  		res = dwarf_formudata(attr, &size, &error);
+  		if( res != DW_DLV_OK) 
+  		{
+    		printf("Error in getting size of %s \n", szInfo.c_str());  
+    		exit(0);
+  		}
+	}
+	else
+  	{
+  		assert(tag == DW_TAG_base_type || tag == DW_TAG_structure_type || tag == DW_TAG_enumeration_type );
+  		attr = GetAttribute(die, DW_AT_byte_size, string("byte_size for ") + szInfo, true );
+  		Dwarf_Unsigned size = 0;
+  		res = dwarf_formudata(attr, &size, &error);
+  		if( res != DW_DLV_OK) 
+  		{
+    		printf("Error in getting size of %s \n", szInfo.c_str());  
+    		exit(0);
+  		}
+  		return size;
+  	}
 }
 
 
-// getting the (type) attribute as a die
-Dwarf_Die CTool::GetAttrDie(Dwarf_Debug dbg, Dwarf_Die die, string szInfo)
+// getting the attribute as a die
+Dwarf_Die CTool::GetAttrAsDie(Dwarf_Debug dbg, Dwarf_Die die, int nAttr, string szInfo)
 {
-  Dwarf_Error error = 0;
-  Dwarf_Half tag = 0;
-  Dwarf_Attribute attr;
-  attr = GetAttribute(die, DW_AT_type, string("type for ")+szInfo, true );
-  Dwarf_Off offset;
-  int res = dwarf_global_formref(attr, &offset, &error);
-  if( res != DW_DLV_OK) 
-  {
-  printf("Error in getting type value of type for %s\n", szInfo.c_str()); 
-  exit(1);  
-  }  
-  
-  // the type die of this type attribute
-  Dwarf_Die typeDie = 0;
-  res = dwarf_offdie(dbg, offset, &typeDie, &error);
-  if( res != DW_DLV_OK)
-  {
-  printf("Error in getting die of type of type-type for %s\n", szInfo.c_str()); 
-  exit(1);
-  }
-  return typeDie;
+  	Dwarf_Error error = 0;
+  	Dwarf_Half tag = 0;
+  	Dwarf_Attribute attr;
+	int res = 0;
+  // 1. get attribute
+ 	attr = GetAttribute(die, nAttr, string("type for ")+szInfo, true );
+  	Dwarf_Off offset;
+  // 2. get the reference entry of this type
+	if( nAttr == DW_AT_type )
+	{
+  		res = dwarf_global_formref(attr, &offset, &error);
+		if( res != DW_DLV_OK) 
+		{
+		printf("Error in getting type value of type for %s\n", szInfo.c_str()); 
+		exit(1);  
+		}  
+	}
+	
+	// 3. the die of this type attribute
+  	Dwarf_Die typeDie = 0;
+  	res = dwarf_offdie(dbg, offset, &typeDie, &error);
+  	if( res != DW_DLV_OK)
+  	{
+  	printf("Error in getting die of type of type-type for %s\n", szInfo.c_str()); 
+ 	exit(1);
+  	}
+  	return typeDie;
 }
 
 
