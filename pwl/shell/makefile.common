@@ -1,0 +1,19 @@
+export CC-ref=clang
+export CC-custom=/home/qali/build/Debug+Asserts/bin/clang
+
+export BIN_PATH=/home/qali/experiments/pwl/bin
+export SYMBOL=$(BIN_PATH)/getSymbol
+
+export PIN_ROOT=/home/qali/src/pin-2.13-65163-gcc.4.4.7-linux
+export PIN=$(PIN_ROOT)/pin
+export PIN_TOOL_PATH=$(PIN_ROOT)/source/tools/SimpleExamples
+export PIN_TOOL=$(PIN_TOOL_PATH)/obj-intel64/pwlTraceGen.so
+
+CFLAGS= -O2 -g -static
+ifdef DEBUG
+CFLAGS=-DDEBUG -O0 -g
+endif
+
+export CFLAGS
+	
+
