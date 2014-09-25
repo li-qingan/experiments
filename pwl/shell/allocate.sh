@@ -1,4 +1,4 @@
-BIN_PATH=/home/qali/project/experiments/pwl/bin
+BIN_PATH=~/experiments/pwl/bin
 
 if [ $1 -eq 0 ]
 then

@@ -36,6 +36,7 @@ int main(int argc, char *argv[])
 	CHeapAllocator *allocator = new CHeapAllocator(0, nSize, nLineSize);
 	allocator->init();
 	
+	double dTotal = 0;
 	//3. start allocating
 	list<TraceE *>::iterator I = g_Trace.begin(), E = g_Trace.end();
 	for(; I != E; ++ I)
@@ -44,6 +45,8 @@ int main(int argc, char *argv[])
 		Object *obj = traceE->_obj;
 		if(traceE->_entry)
 		{
+			os <<hex << obj->_nID << ":" << writeCompute(obj->_hOffset2W) << endl;
+			dTotal += writeCompute(obj->_hOffset2W);
 			MemBlock *block = allocator->allocate(traceE);	
 			updateStats(obj, block);
 		}
@@ -54,10 +57,11 @@ int main(int argc, char *argv[])
 	}
 	
 	//4. print
-	print(szOutFile, nSize);
+	print(szOutFile, nSize, nLineSize);
 	
 	//5. wear leveling compute
-	wearCompute(nSize, os);
+	wearCompute(nSize, nLineSize, os);
+	os << "Total:\t" << dTotal << endl;
 	os.close();
 	return 0;
 }

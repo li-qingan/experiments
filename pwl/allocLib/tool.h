@@ -18,7 +18,11 @@ extern map<ADDRINT, UINT64> g_32Addr2FrameCount;
 
 void readTrace(string szFile);
 void updateStats(Object *obj, MemBlock *block);
-void print(string szFile, UINT64 nSize);
-double wearCompute(UINT64 nSize, ofstream &outf);
+void print(string szFile, UINT64 nSize, UINT32 nLineSize);
+double wearCompute(UINT64 nSize, UINT32 nLineSize, ofstream &outf);
+
+double writeCompute(map<ADDRINT, UINT64> &m);
+
+
 
 #endif

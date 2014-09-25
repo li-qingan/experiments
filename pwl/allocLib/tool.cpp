@@ -13,7 +13,7 @@ void readTrace(string szTraceFile)
 	std::map<UINT32, Object *> hId2Object;
 	// skip the prolog
 	while(getline(inf, szLine) )
-		if( szLine[0] == '<')
+		if( szLine[0] == '@')
 			break;
 
 	do
@@ -22,16 +22,17 @@ void readTrace(string szTraceFile)
 		TraceE *traceE = NULL;
 		Region region;
 		UINT32 nID;	
-		UINT32 nSize;	
+		UINT32 nSize;
+		bool bEntry;	
 		UINT32 nCount;	
 
 		if(szLine.size() < 2)
 			continue;				
 		
-		if(szLine[0] == '<' )   // entry
+		if(szLine[0] == '@' )   
 		{
 			// read basic info
-			if( szLine[1] == 'f' )
+			if( szLine[1] == 's' )
 				region = FRAME;
 			else if( szLine[1] == 'h' )
 				region = HEAP;
@@ -39,53 +40,53 @@ void readTrace(string szTraceFile)
 				region = GLOBAL;
 			else
 			{
-				cerr << szLine << endl;
+				cerr << "Error in " << szLine << endl;
 				assert(false);
 			}
 				
 			string szInfo = szLine.substr(2);
 			stringstream ss(szInfo);	
-			ss >>hex>> nID >> nSize >> nCount;				
+			ss >>hex>> nID >> nSize >> bEntry >> nCount;				
 			
-			obj = new Object(nID, nSize, region);  // ??? nSize + 16 for boundary tags?
-			traceE = new TraceE(obj, true);	
-			hId2Object[nID] = obj;			
-			//cerr << "Entry " << nID << endl;	
-			
-			// read write count
-			if( nCount > 0)
+			if( bEntry )
 			{
-				getline(inf, szLine);
-				stringstream ss1(szInfo);
-				for(UINT32 i =0; i < nCount; ++ i )
+				obj = new Object(nID, nSize, region);  // ??? nSize + 16 for boundary tags?
+				traceE = new TraceE(obj, bEntry);	
+				hId2Object[nID] = obj;			
+				//cerr << "Entry " << nID << endl;	
+			
+				// read write count
+				if( nCount > 0)
 				{
-					UINT32 nOffset;
-					UINT64 nWrite;
+					getline(inf, szLine);
+					stringstream ss1(szLine);
+					for(UINT32 i =0; i < nCount; ++ i )
+					{
+						UINT32 nOffset;
+						UINT64 nWrite;
 					
-					ss1 >> nOffset >> nWrite;			
-					obj->_hOffset2W[nOffset] = nWrite;		
+						ss1 >> nOffset >> nWrite;			
+						obj->_hOffset2W[nOffset] = nWrite;		
+					}
 				}
 			}
+			else if(!bEntry)
+			{
+				Object *obj = hId2Object[nID];			
+				traceE = new TraceE(obj, bEntry);				
 			
+				if( obj == NULL )
+					cerr << "Error!: No entry for " << nID << endl;		
+			}			
 		}
-		else if(szLine[0] == '>' ) // function exit
-		{
-			string szInfo = szLine.substr(2);
-			stringstream ss(szInfo);	
-			ss >>hex>> nID;		
-			
-			Object *obj = hId2Object[nID];			
-			traceE = new TraceE(obj, false);				
-			
-			if( obj == NULL )
-				cerr << "No entry for " << nID << endl;							
-		}	
-		else
-			assert(false);	
 		
+		else		
+			assert(false);			
 		g_Trace.push_back(traceE);		
 	}while(getline(inf, szLine));
 	inf.close();
+	if(g_Trace.empty() )
+		cerr << "The trace is empty!" << endl;
 }
 
 // 2. update write count and object count for each address
@@ -93,13 +94,16 @@ void updateStats(Object *obj, MemBlock *block)
 {
 	std::map<UINT32, UINT64>::iterator w_p = obj->_hOffset2W.begin(), w_e = obj->_hOffset2W.end();
 	for(; w_p != w_e; ++ w_p )
-	{
-		g_32Addr2WriteCount[block->_nStartAddr + w_p->first] += w_p->second;
-		++ g_32Addr2FrameCount[block->_nStartAddr + w_p->first];
+	{	
+		ADDRINT nAddr = block->_nStartAddr + w_p->first;
+		if( nAddr >= 0x100001 )
+			cerr << "Error!" << endl;
+		g_32Addr2WriteCount[nAddr] += w_p->second;
+		++ g_32Addr2FrameCount[nAddr];
 	}	
 }
 
-void print(string szOutFile, UINT64 nSize)
+void print(string szOutFile, UINT64 nSize, UINT32 nLineSize)
 {			
 	
 	ofstream outf;
@@ -114,25 +118,30 @@ void print(string szOutFile, UINT64 nSize)
 	
 	string szFileSparse = szOutFile + "_sparse";
 	outf.open(szFileSparse.c_str(), ios_base::out);
-	for( UINT64 i = 0; i < nSize; ++ i )
+	for( UINT64 i = 0; i < nSize; i=i+nLineSize )
 	{
-		outf << hex << I_p->first  << "\t" << g_32Addr2FrameCount[I_p->second] << "\t" << g_32Addr2WriteCount[I_p->second]<< endl;
+		outf << hex << i  << "\t" << g_32Addr2FrameCount[i] << "\t" << g_32Addr2WriteCount[i]<< endl;
 	}
 	outf.close();
 }
 
-double wearCompute(UINT64 nSize, ofstream &outf)
+double wearCompute(UINT64 nSize, UINT32 nLineSize, ofstream &outf)
 {
-	vector<UINT64> writes(nSize,0);
+	UINT64 nEntries = nSize/nLineSize;
+	vector<UINT64> writes(nEntries, 0);
 	UINT64 worst = 0;
 	
-	for( UINT64 i = 0; i < nSize; ++ i )
+	double dTotal = 0;
+	for( UINT64 i = 0; i < nEntries; ++i )
 	{
-		writes[i] = g_32Addr2WriteCount[i];
+		writes[i] = g_32Addr2WriteCount[i*nLineSize];
+		dTotal += writes[i];
+		
 		if(writes[i] > worst)
 			worst = writes[i];
 	}
-	
+	//cerr << "Totol in wear:\t" << dTotal << endl;
+	//cerr << "Total in count:\t" << writeCompute(g_32Addr2WriteCount);
 	
 	// 1. compute the expected value
 	double sum = 0.0;
@@ -158,7 +167,7 @@ double wearCompute(UINT64 nSize, ofstream &outf)
 	//cerr << "sumVariance:\t" << sumVariance << endl;
 
 	// 3. compute standard deviation
-	double stdDev = sumVariance/(nSize-1);
+	double stdDev = sumVariance/(nEntries-1);
 	//???
 	double wear = sqrt(stdDev)/exp;
 	cerr << "worst:\t" << worst << endl;
@@ -168,4 +177,19 @@ double wearCompute(UINT64 nSize, ofstream &outf)
 	
 	return wear;
 }
+
+double writeCompute(std::map<ADDRINT, UINT64> &m)
+{
+	double dWrites = 0;
+	std::map<UINT32, UINT64>::iterator w_p = m.begin(), w_e = m.end();
+	for(; w_p != w_e; ++ w_p )
+	{
+		if( w_p->first >= 0x100000 )
+			cerr << w_p->first << " over " << w_p->second << endl;
+		dWrites += w_p->second;
+	}
+	return dWrites;
+}
+
+
 

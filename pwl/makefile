@@ -1,3 +1,4 @@
+#use "make" command to build this experimental setup tools
 
 LEVEL=.
 
@@ -26,6 +27,9 @@ defaultAllocator1: allocLib1
 optiAllocator1: allocLib1
 	@echo "==========="
 	$(MAKE) -C optiAllocator
+
+clean:	
+	rm allocLib/*.o
 
 	
 

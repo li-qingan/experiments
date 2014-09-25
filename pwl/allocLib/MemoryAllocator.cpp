@@ -1,11 +1,11 @@
 #include <assert.h>
 #include "MemoryAllocator.h"
 
-CAllocator::CAllocator(ADDRINT nStartAddr, ADDRINT nSize, ADDRINT nLineSizeShift=4) 
+CAllocator::CAllocator(ADDRINT nStartAddr, ADDRINT nSize, ADDRINT nLineSize=4) 
 {
 	m_nStartAddr = nStartAddr;
 	m_nSize = nSize;  // in power		
-	m_nLineSizeShift = nLineSizeShift;	
+	m_nLineSize = nLineSize;	
 }
 
 MemBlock *CStaticAllocator::allocate(TraceE *traceE)
@@ -16,9 +16,11 @@ MemBlock *CStaticAllocator::allocate(TraceE *traceE)
 #ifdef DEBUG
 	cerr << "<try allocating (" << hex << obj->_nID << "," << obj->_nSize << ") from static" << endl;		
 #endif
+	m_nCurrent = alignUp(m_nCurrent, m_nLineSize);
+	UINT64 nSize = alignUp(obj->_nSize, m_nLineSize);
 
 	ADDRINT nRemain = m_nSize - m_nCurrent;
-	if( obj->_nSize > nRemain )
+	if(nSize > nRemain )
 	{
 		cerr << "@Error: failed to allocate " << hex << obj->_nSize << " with only " << nRemain << "bytes remaining" << endl;
 		assert(false);
@@ -26,11 +28,11 @@ MemBlock *CStaticAllocator::allocate(TraceE *traceE)
 	}
 
 #ifdef DEBUG
-	cerr << "@(" <<hex << m_nCurrent << "," << obj->_nSize << ")" << endl;
+	//cerr << "@(" <<hex << m_nCurrent << "," << obj->_nSize << ")" << endl;
 #endif	
-	newBlock = new MemBlock(obj, m_nCurrent, obj->_nSize);
+	newBlock = new MemBlock(obj, m_nCurrent, nSize);
 	obj->_block = newBlock;
-	m_nCurrent += obj->_nSize;
+	m_nCurrent += nSize;
 	
 	return newBlock;	
 }
@@ -42,10 +44,10 @@ void CStaticAllocator::deallocate(TraceE *traceE)
 	assert(block != 0 );	
 	
 #ifdef DEBUG
-	cerr << ">try deallocating (" <<hex << block->_nStartAddr << "," << block->_nSize << ") back to static area" << endl;
+	//cerr << ">try deallocating (" <<hex << block->_nStartAddr << "," << block->_nSize << ") back to static area" << endl;
 #endif	
 	
-	m_nCurrent -= obj->_nSize;
+	m_nCurrent -= block->_nSize;
 	delete obj;
 	delete block;
 }
@@ -59,18 +61,19 @@ MemBlock *CStackAllocator::allocate(TraceE *traceE)
 	cerr << "<try allocating (" << hex << obj->_nID << "," << obj->_nSize << ") from stack" << endl;	
 #endif
 
-	ADDRINT nRemain = m_StackTop - m_nStartAddr;
-	if( nRemain < obj->_nSize )
+	m_StackTop = alignDown(m_StackTop, m_nLineSize);
+	UINT64 nSize = alignUp(obj->_nSize, m_nLineSize);
+	ADDRINT nRemain = m_StackTop - m_Bottom;
+	if( nRemain < nSize )
 	{
 		cerr << hex << nRemain << " cannot afford " << obj->_nSize << " bytes!" << endl;
 		assert(false );
 		return NULL;
 	}
-
-	newBlock = new MemBlock(obj, m_StackTop-obj->_nSize, obj->_nSize);
+	m_StackTop = m_StackTop-nSize;
+	newBlock = new MemBlock(obj, m_StackTop, nSize);
 	obj->_block = newBlock;
 	
-	m_StackTop -= obj->_nSize;
 
 #ifdef DEBUG
 	cerr << "@(" <<hex << newBlock->_nStartAddr << "," << newBlock->_nSize << ")" << endl;
@@ -89,6 +92,7 @@ void CStackAllocator::deallocate(TraceE *traceE)
 #endif	
 	
 	m_StackTop += block->_nSize;
+	assert(m_StackTop < 0x100001 );
 	delete obj;
 	delete block;
 }
@@ -104,19 +108,21 @@ MemBlock* CHeapAllocator::allocate(TraceE *traceE)
 #endif
 	
 	// 1. search the free block to use
+	UINT64 nSize = alignUp(obj->_nSize, m_nLineSize);
 	int retv = 1;
 	MemBlock *newBlock = NULL;
 	MemBlock* block = m_lastP;
 	do
 	{		
 		// if found the place
-		if(!block->isUsed() && block->_nSize > obj->_nSize )
+		if(!block->isUsed() && block->_nSize >= nSize )
 		{
 			// allocate a new block
-			newBlock = new MemBlock(obj, block->_nStartAddr, obj->_nSize);
+			newBlock = new MemBlock(obj, block->_nStartAddr, nSize);
 			obj->_block = newBlock;
-			block->_nSize -= obj->_nSize;
-			block->_nStartAddr += obj->_nSize;
+			block->_nSize = block->_nSize - nSize;
+			block->_nStartAddr= block->_nStartAddr + nSize;
+			
 			
 			// updating physical position 			
 			newBlock->setLeft(block->getLeft());
@@ -154,7 +160,7 @@ MemBlock* CHeapAllocator::allocate(TraceE *traceE)
 		return NULL;
 	}		
 #ifdef DEBUG
-	cerr << "@(" <<hex << newBlock->_nStartAddr << "," << newBlock->_nSize << ")" << endl;
+	//cerr << "@(" <<hex << newBlock->_nStartAddr << "," << newBlock->_nSize << ")" << endl;
 #endif
 	return newBlock;
 }
@@ -234,4 +240,14 @@ void CHeapAllocator::dumpFreeList()
 	cerr << endl;
 }
 
+UINT64 CAllocator::alignUp(UINT64 nAddr, UINT64 nLineSize)
+{
+	UINT64 nFactor = (nAddr+nLineSize-1)/nLineSize;
+	return nFactor * nLineSize;
+}
+UINT64 CAllocator::alignDown(UINT64 nSize, UINT64 nLineSize)
+{
+	UINT64 nFactor = nSize/nLineSize;
+	return nFactor * nLineSize;
+}
 

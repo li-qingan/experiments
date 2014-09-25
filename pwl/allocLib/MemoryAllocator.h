@@ -96,6 +96,8 @@ public:
 	void run();
 	void print(string szFile);
 	virtual void init(){};
+	static UINT64 alignUp(UINT64 nAddr, UINT64 nLineSize);
+	static UINT64 alignDown(UINT64 nSize, UINT64 nLineSize);
 	
 protected:
 	virtual MemBlock* allocate(TraceE *traceE){ return 0;};
@@ -109,7 +111,7 @@ protected:
 	ADDRINT m_nStartAddr;
 	UINT32 m_nSizePower;
 	UINT32 m_nSize;	// the size of the memory space
-	UINT32 m_nLineSizeShift;	// the size of each memory line which consider the write count as a whole	
+	UINT32 m_nLineSize;	// the size of each memory line which consider the write count as a whole	
 	
 };
 
@@ -135,12 +137,15 @@ public:
 	void init() 
 	{
 		// add an initial free block
-		m_StackTop = m_nStartAddr + m_nSize;
+		m_Bottom = m_nStartAddr;
+		m_StackTop = m_Bottom + m_nSize;
+		cerr << "Stack initialization:\tTop(" << m_StackTop << ")\tBottom(" << m_nStartAddr << ")" << endl;
 	}
 	MemBlock* allocate(TraceE *traceE);
 	void deallocate(TraceE *traceE);
 private:
 	ADDRINT  m_StackTop; // to track the available space
+	ADDRINT m_Bottom;
 };
 
 class CHeapAllocator: public CAllocator

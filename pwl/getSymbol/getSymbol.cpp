@@ -165,7 +165,8 @@ read_cu_list(Dwarf_Debug dbg)
 		Error(res, "SEARCHING CU die name", true);
 		if( dieName )
 			printf("===========CU die name:\t%s==============\n", dieName);		
-
+		if( dieName == "util.c" )
+			printf("+++\n");
         DepthFirst(dbg,cu_die,0,&sf);
         dwarf_dealloc(dbg,cu_die,DW_DLA_DIE);
         resetsrcfiles(dbg,&sf);
@@ -322,17 +323,15 @@ print_die_data(Dwarf_Debug dbg, Dwarf_Die print_me,int level,
 				return ; // skip non-global variables
 			printIndent('-', level);
 			printf("<%d> tag: %d %s  name: \"%s\"",level,tag,tagname,name);
+			if( g_curFunc == "bitrate\_table" )
+			{
+				name = name;
+				printf("bitrate_table====\n");
+			}
 			//else
 			{	
 				// 1. obtain the size
-				Dwarf_Off offset;
-				res = dwarf_attr(print_me, DW_AT_type, &attr, &error);
-				Error(res, "SEARCHING type attribute", true);
-				res = dwarf_global_formref(attr, &offset, &error);
-				Error(res, "SEARCHING value of type attribute", true);	
-				Dwarf_Die typeDie = 0;
-				res = dwarf_offdie(dbg, offset, &typeDie, &error);
-				Error(res, "SEARCHING die of type value", true);	
+				Dwarf_Die typeDie = CTool::GetAttrAsDie(dbg, print_me, DW_AT_type, string("initial type "));
 				unsigned int nSize = CTool::GetTypeSize(dbg, typeDie, "");
 				printf(":\t[%d]@", nSize);
 

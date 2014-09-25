@@ -1,12 +1,11 @@
 1	__gthread_active_p
 2	Error
 3	dump
-4	printIndent
-5	print_die_data
+4	print_die_data
+5	printIndent
 6	IsGoodTag
 7	VerifiedUserFunc
 8	DepthFirst
 9	read_cu_list
 10	resetsrcfiles
 11	main
-12	__gthread_active_p

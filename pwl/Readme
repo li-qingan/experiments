@@ -1,1 +1,8 @@
 This project provides two memory allocators: a stack allocator and a heap allocator for PCM wear levelling evaluation.
+1) allocLib: it implements a library for memory allocators
+2) defaultAllocator: it implements a stack allocator based on allocLib
+3) optiAllocator: it implements a cyclically dynamic allocator based on allocLib
+4) getSymbol: it obtain the global symbols from the binary file using the dwarf library
+5) shell: it provides several shell script files for experimental evaluation
+6) malloc: it is a memory allocation library by a third-party
+7) bin: it holds the binary files as results for the building process

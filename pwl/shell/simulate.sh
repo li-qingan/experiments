@@ -1,10 +1,10 @@
-BIN_PATH=/home/qali/project/experiments/pwl/bin
+BIN_PATH=/home/qali/experiments/pwl/bin
 SYMBOL=$BIN_PATH/getSymbol
 
-
-PIN=/home/qali/Ins/pin-2.13-65163-gcc.4.4.7-linux/pin
-PIN_TOOL_PATH=/home/qali/Ins/pin-2.13-65163-gcc.4.4.7-linux/source/tools/SimpleExamples
-PIN_TOOL=$PIN_TOOL_PATH/obj-ia32/$1.so
+PIN_ROOT=/home/qali/src/pin-2.13-65163-gcc.4.4.7-linux
+PIN=$PIN_ROOT/pin
+PIN_TOOL_PATH=$PIN_ROOT/source/tools/SimpleExamples
+PIN_TOOL=$PIN_TOOL_PATH/obj-intel64/$1.so
 
 APPLICATION=$2
 
