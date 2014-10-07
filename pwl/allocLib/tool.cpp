@@ -112,7 +112,7 @@ void print(string szOutFile, UINT64 nSize, UINT32 nLineSize)
 	std::map<ADDRINT, UINT64>::iterator I_p = g_32Addr2FrameCount.begin(), I_e = g_32Addr2FrameCount.end();
 	for(; I_p != I_e; ++ I_p )	
 	{		
-		outf << hex << I_p->first  << "\t" << g_32Addr2FrameCount[I_p->second] << "\t" << g_32Addr2WriteCount[I_p->second]<< endl;
+		outf << dec << I_p->first  << "\t" << g_32Addr2FrameCount[I_p->second] << "\t" << g_32Addr2WriteCount[I_p->second]<< endl;
 	}	
 	outf.close();
 	
@@ -120,7 +120,7 @@ void print(string szOutFile, UINT64 nSize, UINT32 nLineSize)
 	outf.open(szFileSparse.c_str(), ios_base::out);
 	for( UINT64 i = 0; i < nSize; i=i+nLineSize )
 	{
-		outf << hex << i  << "\t" << g_32Addr2FrameCount[i] << "\t" << g_32Addr2WriteCount[i]<< endl;
+		outf << dec << i  << "\t" << g_32Addr2FrameCount[i] << "\t" << g_32Addr2WriteCount[i]<< endl;
 	}
 	outf.close();
 }
